@@ -1,0 +1,28 @@
+<html>
+  <head>
+    <title>Continue</title>
+    <script src="script.js"></script>
+      <script type="text/javascript">
+    function isMobileDevice() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    function redirectIfNeeded() {
+      if (isMobileDevice()) {
+        window.location.href = "mobile.html";
+      }
+    }
+
+    redirectIfNeeded();
+  </script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="loading">Loading...</div>
+    <div id="start" style="display: none; text-align: center;">
+      Click to continue.
+    </div>
+    <div id="data"></div>
+    <video id="video" playingline style="display: none; pointer-events: none;"></video>
+  </body>
+</html>
