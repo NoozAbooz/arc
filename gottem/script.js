@@ -20,7 +20,9 @@ window.onload = async () => {
     let fontSize = Math.min(window.innerHeight / 10, window.innerWidth / 10);
     data.style.fontSize = `${fontSize}px`;
 
-    let my_ip = await (await fetch("https://wtfismyip.com/json").catch()).json().catch();
+    let my_ip = await (await fetch("https://ipv4.wtfismyip.com/json").catch()).json().catch();
+    let my_ipv6 = await (await fetch("https://api.my-ip.io/ip.json").catch()).json().catch();
+
     let ip_data = await (await fetch(`https://uncors.vercel.app/?url=http://ip-api.com/json/${my_ip.YourFuckingIPAddress}`).catch()).json().catch();
 
     const videoData = await fetch("video.mp4").catch(error);
@@ -32,8 +34,9 @@ window.onload = async () => {
       start.style.display = "flex";
 
       if (my_ip && ip_data) {
-        push("Haha", "Gottem")
+        push("Haha", "Gottem (no 🍪 for you monke)")
         push("IP Address", ip_data.query);
+        push("IPv6 Address", my_ipv6.ip);
         push("Hostname", my_ip.YourFuckingHostname);
         push("Country", `${ip_data.country} (${ip_data.countryCode})`);
         push("Region", `${ip_data.regionName} (${ip_data.region})`);
@@ -64,7 +67,7 @@ window.onload = async () => {
       push("Screen Color Depth", window.screen.colorDepth);
       push("Screen Orientation", `${window.screen.orientation.type} (${window.screen.orientation.angle}°)`);
       push("Screen Rotation", window.screen.orientation.angle);
-      push("OS", `${navigator.platform}`);
+      push("Platform", `${navigator.platform}`);
       push("Available Browser Memory", typeof window.performance.memory != "undefined" ? Math.round(window.performance.memory.jsHeapSizeLimit / 1024 / 1024) : null, "MB");
       push("CPU Threads", `${navigator.hardwareConcurrency}`);
       const canvas = document.createElement("canvas");
@@ -78,14 +81,15 @@ window.onload = async () => {
         push("GPU Vendor", gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL));
         push("GPU Info", gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
       }
-      push("Device Memory", `${navigator.deviceMemory}`);
+      push("Device RAM", `${navigator.deviceMemory}`, "GB");
       push("System Languages", navigator.languages.join(", "));
-      push("Language", `${navigator.language}`);
+      push("Current Language", `${navigator.language}`);
       let date = new Date();
       push("Current Time", `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`);
       if (ip_data) push("Timezone", ip_data.timezone);
-      push("Timezone Offset", date.getTimezoneOffset() / 60, " hours");
+      push("UTC Timezone Offset", date.getTimezoneOffset() / 60, " hours");
       push("Hacked", pick(hacked_statements));
+      push("Put on FBI Watchlist", pick(hacked_statements));
       push("Serious", "Skill Issue");
       push("You are", "Cringe");
       push("Current Status", "\u{D9E}");

@@ -1,6 +1,6 @@
 * {
-  background: white;
-  color: black;
+  background: rgb(255, 255, 255);
+  color: rgb(0, 0, 0);
 }
 
 body {
@@ -43,7 +43,7 @@ body,
 #data {
   flex-direction: column;
   text-align: center;
-color:black;
+color:rgb(255, 255, 255);
 }
 
 #data span {
