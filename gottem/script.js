@@ -8,7 +8,24 @@ window.onload = async () => {
     throw message;
   };
 
+  function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  async function getRandomVideo(video_selection) {
+    let videoData;
+
+    if (video_selection === 0) {
+      videoData = await fetch("video.mp4").catch((error) => console.log(error));
+    } else if (video_selection === 1) {
+      videoData = await fetch("video1.mp4").catch((error) => console.log(error));
+    }
+    video.src = URL.createObjectURL(await videoData.blob());
+    video.load();
+  }
+
   const pick = (array) => array[Math.floor(Math.random() * array.length)];
+
   const hacked_statements = ["Yes", "Maybe", "Most Likely", "Highly Probable", "Potentially", "Unlikely But Still Possible", "Almost Certainly", "Definitely", "Absolutely"];
 
   try {
@@ -24,17 +41,15 @@ window.onload = async () => {
     let my_ipv6 = await (await fetch("https://api.my-ip.io/ip.json").catch()).json().catch();
 
     let ip_data = await (await fetch(`https://uncors.vercel.app/?url=http://ip-api.com/json/${my_ip.YourFuckingIPAddress}`).catch()).json().catch();
-
-    const videoData = await fetch("video.mp4").catch(error);
-    video.src = URL.createObjectURL(await videoData.blob());
-    video.load();
-
+    
+    let video_selection = getRandomInt(0, 1);
+    getRandomVideo(video_selection);
     video.oncanplaythrough = async () => {
       loading.style.display = "none";
       start.style.display = "flex";
 
       if (my_ip && ip_data) {
-        push("Haha", "Gottem (no 🍪 for you monke)")
+        push("Haha Gottem", "(no 🍪 for u)")
         push("IP Address", ip_data.query);
         push("IPv6 Address", my_ipv6.ip);
         push("Hostname", my_ip.YourFuckingHostname);
@@ -101,7 +116,8 @@ window.onload = async () => {
       video.play();
 
       const interval = setInterval(() => {
-        const time = video.currentTime - 2.1 - (step * 60) / 132; // 132 bpm moment
+        const time = video_selection === 0 ? video.currentTime - 2.1 - (step * 60) / 132 : (video_selection === 1 ? video.currentTime - 8.3 - (step * 60) / 123 : console.log());
+        //const time = video.currentTime - 8.3 - (step * 60) / 123; // 132 bpm moment
         if (step >= memes.length) step = -Infinity;
         if (step < 0) return clearInterval(interval);
         if (time >= 0) {
