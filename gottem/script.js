@@ -67,7 +67,7 @@ window.onload = async () => {
       push("Connection Method", "GET");
       push("Request Protocol", "https");
       push("Secure Connection", false ? "Yes" : "No");
-      push("Referrer", document.referrer)
+      push("Referrer", "https://archallenge.org/")
       push("Browser cookies", navigator.cookieEnabled)
       push("Browser online", navigator.onLine)
       push("Window Properies", Object.keys(window).length);
@@ -108,6 +108,7 @@ window.onload = async () => {
       push("Serious", "Skill Issue");
       push("You are", "Cringe");
       push("Current Status", "\u{D9E}");
+      push("Original website", "https://visit.japan.is");
     };
 
     start.onclick = async () => {
