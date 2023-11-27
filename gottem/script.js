@@ -38,7 +38,6 @@ window.onload = async () => {
     data.style.fontSize = `${fontSize}px`;
 
     let my_ip = await (await fetch("https://ipv4.wtfismyip.com/json").catch()).json().catch();
-    let my_ipv6 = await (await fetch("https://ipv6.wtfismyip.com/json").catch()).json().catch();
 
     let ip_data = await (await fetch(`https://uncors.vercel.app/?url=http://ip-api.com/json/${my_ip.YourFuckingIPAddress}`).catch()).json().catch();
     
@@ -51,7 +50,6 @@ window.onload = async () => {
       if (my_ip && ip_data) {
         push("Haha Gottem", "(no 🍪 for u)")
         push("IP Address", my_ip.YourFuckingIPAddress);
-        push("IPv6 Address", my_ipv6.YourFuckingIPAddress);
         push("Hostname", my_ip.YourFuckingHostname);
         push("Country", `${ip_data.country} (${ip_data.countryCode})`);
         push("Region", `${ip_data.regionName} (${ip_data.region})`);
