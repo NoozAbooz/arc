@@ -3,27 +3,26 @@
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0">
 
   <style>
-    .container {
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-      padding-top: 0.5625%; /* 16:9 Aspect Ratio */
+    body{
+        margin: 0; /* Remove default margin */
     }
-
-    .responsive-iframe {
-      position: absolute;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      right: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
+    iframe{
+        display: grid;  /* iframes are inline by default */
+        height: calc(100vh + 52.5px);  /* Set height to 100% of the viewport height */
+/*        width: calc(100vw + 40px);  /* Set width to 100% of the viewport width */
+        width: 100vw;  /* Set width to 100% of the viewport width */
+        border: none; /* Remove default border */
+        background: rgb(0, 0, 0); /* Just for styling */
+        /* top: -45px; */
+        /* right: -60px; */
     }
-  </style>
-    
-  <iframe src="https://alpinereasoning.wixsite.com/site" style="    position: fixed;    left: 0px;    top: -51px;    width: 100%;    height: 108%;}">
+</style>
+  <body>
+  
+    <iframe src="https://alpinereasoning.wixsite.com/site/" style="position:absolute; overflow:hidden;">
+    </iframe>  
     
   </body>
+
 </html>
 
