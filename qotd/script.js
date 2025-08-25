@@ -7,7 +7,7 @@ class QOTDApp {
         this.stats = {
             questionsAnswered: 0,
             correctAnswers: 0,
-            longestStreak: 0
+            accuracy: 0
         };
         
         this.init();
@@ -93,11 +93,9 @@ class QOTDApp {
             console.log('No saved stats found, using defaults:', this.stats);
         }
         
-        // Check if there's an existing current streak and update longest streak if needed
-        const currentStreak = parseInt(localStorage.getItem('qotd_current_streak') || '0');
-        if (currentStreak > this.stats.longestStreak) {
-            this.stats.longestStreak = currentStreak;
-            console.log('Updated longest streak to:', this.stats.longestStreak);
+        // Calculate accuracy based on loaded stats
+        if (this.stats.questionsAnswered > 0) {
+            this.stats.accuracy = Math.round((this.stats.correctAnswers / this.stats.questionsAnswered) * 100);
         }
         
         console.log('Final stats after loading:', this.stats);
@@ -339,6 +337,9 @@ class QOTDApp {
                 </div>
             </div>
         `;
+        
+        // Update stats after showing completion message
+        setTimeout(() => this.updateStats(), 100);
     }
 
     showCompletionMessage() {
@@ -364,6 +365,9 @@ class QOTDApp {
                 </div>
             </div>
         `;
+        
+        // Update stats after showing completion message
+        setTimeout(() => this.updateStats(), 100);
     }
 
     updateStreak(correct) {
@@ -475,9 +479,9 @@ class QOTDApp {
         // Safety check - ensure all DOM elements exist before updating
         const currentStreakElement = document.getElementById('currentStreakStats');
         const correctAnswersElement = document.getElementById('correctAnswers');
-        const longestStreakElement = document.getElementById('longestStreak');
+        const accuracyElement = document.getElementById('accuracy');
         
-        if (!currentStreakElement || !correctAnswersElement || !longestStreakElement) {
+        if (!currentStreakElement || !correctAnswersElement || !accuracyElement) {
             console.warn('Stats elements not found, skipping stats update');
             return;
         }
@@ -488,17 +492,15 @@ class QOTDApp {
         const currentStreak = this.getCurrentStreak();
         currentStreakElement.textContent = currentStreak;
         
-        // Update longest streak if current streak is higher
-        const currentStreakNum = parseInt(currentStreak);
-        if (currentStreakNum > this.stats.longestStreak) {
-            this.stats.longestStreak = currentStreakNum;
-            console.log('Updated longest streak to:', this.stats.longestStreak);
+        // Calculate and update accuracy
+        if (this.stats.questionsAnswered > 0) {
+            this.stats.accuracy = Math.round((this.stats.correctAnswers / this.stats.questionsAnswered) * 100);
         }
         
         correctAnswersElement.textContent = this.stats.correctAnswers;
-        longestStreakElement.textContent = this.stats.longestStreak;
+        accuracyElement.textContent = `${this.stats.accuracy}%`;
         
-        console.log('Stats display updated. Current streak:', currentStreak, 'Correct answers:', this.stats.correctAnswers, 'Longest streak:', this.stats.longestStreak);
+        console.log('Stats display updated. Current streak:', currentStreak, 'Correct answers:', this.stats.correctAnswers, 'Accuracy:', this.stats.accuracy + '%');
         
         // Save all stats to localStorage
         this.saveStats();
