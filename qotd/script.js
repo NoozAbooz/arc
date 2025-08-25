@@ -10,6 +10,10 @@ class QOTDApp {
             accuracy: 0
         };
         
+        // Add calendar state tracking
+        this.currentCalendarDate = new Date();
+        this.isCalendarNavigating = false;
+        
         this.init();
     }
 
@@ -17,10 +21,13 @@ class QOTDApp {
         await this.loadQuestions();
         this.loadStats();
         this.loadAnsweredQuestions();
+        
+        // Always generate calendar first
+        this.generateCalendar(new Date());
+        
         this.displayQuestion();
         this.setupEventListeners();
-        // Ensure calendar is generated on initialization with a small delay
-        setTimeout(() => this.generateCalendar(), 100);
+        
         // Update stats after everything is loaded
         setTimeout(() => this.updateStats(), 200);
     }
@@ -175,6 +182,11 @@ class QOTDApp {
         this.selectedAnswer = null;
         document.getElementById('submitBtn').disabled = true;
         document.getElementById('nextBtn').style.display = 'none';
+        
+        // Ensure calendar is available even when showing a new question
+        if (!this.currentCalendarDate) {
+            this.generateCalendar(new Date());
+        }
     }
 
     showTodaysQuestion() {
@@ -192,7 +204,7 @@ class QOTDApp {
                 </div>
                 <div class="question-content">
                     <h2 class="question-text">You've already answered today's question!</h2>
-                    <p class="come-back-tomorrow">Come back tomorrow for a new question.</p>
+                    <p class="come-back-tomorrow">Come back tomorrow for a new challenge!</p>
                     <div class="streak-info">
                         <i class="fas fa-fire"></i>
                         <span>Current Streak: <strong>${this.getCurrentStreak()}</strong> days</span>
@@ -203,6 +215,18 @@ class QOTDApp {
         
         // Ensure calendar is generated when showing today's question
         this.generateCalendar();
+        
+        // Verify calendar navigation is working
+        setTimeout(() => {
+            const prevMonthBtn = document.getElementById('prevMonth');
+            const nextMonthBtn = document.getElementById('nextMonth');
+            console.log('Calendar navigation buttons after showTodaysQuestion:', {
+                prevMonth: prevMonthBtn,
+                nextMonth: nextMonthBtn,
+                prevMonthOnclick: prevMonthBtn?.onclick,
+                nextMonthOnclick: nextMonthBtn?.onclick
+            });
+        }, 100);
         
         // Update stats display
         setTimeout(() => this.updateStats(), 100);
@@ -288,8 +312,8 @@ class QOTDApp {
         // Show explanation and completion message
         this.showExplanation();
         
-        // Update calendar
-        this.generateCalendar();
+        // Update stats (which will handle calendar updates if needed)
+        this.updateStats();
     }
 
     nextQuestion() {
@@ -399,9 +423,16 @@ class QOTDApp {
         
         // Safety check - ensure calendar elements exist
         if (!calendarGrid || !calendarMonth) {
-            console.warn('Calendar elements not found, skipping calendar generation');
+            console.warn('Calendar elements not found, retrying in 100ms');
+            // Retry after a short delay if elements aren't available yet
+            setTimeout(() => this.generateCalendar(targetDate), 100);
             return;
         }
+        
+        // Update the current calendar date
+        this.currentCalendarDate = new Date(targetDate);
+        
+        console.log('Generating calendar for:', this.currentCalendarDate.toDateString());
         
         const today = new Date();
         const currentMonth = targetDate.getMonth();
@@ -460,6 +491,11 @@ class QOTDApp {
             
             calendarGrid.appendChild(dayElement);
         }
+        
+        // Re-setup calendar navigation event listeners after regenerating
+        this.setupCalendarEventListeners();
+        
+        console.log(`Calendar generated for ${monthNames[currentMonth]} ${currentYear} with ${daysInMonth} days`);
     }
 
     isDateAnswered(dateString) {
@@ -505,23 +541,104 @@ class QOTDApp {
         // Save all stats to localStorage
         this.saveStats();
         
-        // Generate calendar
-        this.generateCalendar();
+        // Only regenerate calendar if it's not already showing the current month
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        const calendarMonth = this.currentCalendarDate.getMonth();
+        const calendarYear = this.currentCalendarDate.getFullYear();
+        
+        if (currentMonth !== calendarMonth || currentYear !== calendarYear) {
+            this.generateCalendar(new Date());
+        }
     }
 
     setupEventListeners() {
         document.getElementById('submitBtn').addEventListener('click', () => this.submitAnswer());
         document.getElementById('nextBtn').addEventListener('click', () => this.nextQuestion());
         
-        // Calendar navigation
-        document.getElementById('prevMonth').addEventListener('click', () => this.navigateMonth(-1));
-        document.getElementById('nextMonth').addEventListener('click', () => this.navigateMonth(1));
+        // Setup calendar navigation event listeners
+        this.setupCalendarEventListeners();
+    }
+
+    setupCalendarEventListeners() {
+        // Setup calendar navigation event listeners
+        const prevMonthBtn = document.getElementById('prevMonth');
+        const nextMonthBtn = document.getElementById('nextMonth');
+        
+        if (prevMonthBtn) {
+            // Remove existing event listeners by using a unique handler
+            prevMonthBtn.onclick = (e) => {
+                e.preventDefault();
+                console.log('Previous month button clicked');
+                this.navigateMonth(-1);
+            };
+        }
+        
+        if (nextMonthBtn) {
+            // Remove existing event listeners by using a unique handler
+            nextMonthBtn.onclick = (e) => {
+                e.preventDefault();
+                console.log('Next month button clicked');
+                this.navigateMonth(1);
+            };
+        }
+        
+        // Log the setup for debugging
+        console.log('Calendar event listeners setup:', {
+            prevMonth: prevMonthBtn,
+            nextMonth: nextMonthBtn,
+            prevMonthOnclick: prevMonthBtn?.onclick,
+            nextMonthOnclick: nextMonthBtn?.onclick
+        });
     }
 
     navigateMonth(direction) {
-        const currentDate = new Date();
-        currentDate.setMonth(currentDate.getMonth() + direction);
-        this.generateCalendar(currentDate);
+        // Prevent multiple rapid clicks
+        if (this.isCalendarNavigating) {
+            console.log('Calendar navigation already in progress, ignoring click');
+            return;
+        }
+        
+        try {
+            this.isCalendarNavigating = true;
+            
+            // Disable navigation buttons temporarily
+            const prevMonthBtn = document.getElementById('prevMonth');
+            const nextMonthBtn = document.getElementById('nextMonth');
+            
+            if (prevMonthBtn) prevMonthBtn.disabled = true;
+            if (nextMonthBtn) nextMonthBtn.disabled = true;
+            
+            // Create a new date object based on the current calendar date
+            const newDate = new Date(this.currentCalendarDate);
+            newDate.setMonth(newDate.getMonth() + direction);
+            
+            console.log(`Navigating calendar: ${direction > 0 ? 'next' : 'previous'} month`);
+            console.log(`From: ${this.currentCalendarDate.toDateString()}`);
+            console.log(`To: ${newDate.toDateString()}`);
+            
+            // Generate calendar with the new date
+            this.generateCalendar(newDate);
+            
+            // Re-enable navigation buttons after a short delay
+            setTimeout(() => {
+                if (prevMonthBtn) prevMonthBtn.disabled = false;
+                if (nextMonthBtn) nextMonthBtn.disabled = false;
+                this.isCalendarNavigating = false;
+            }, 300);
+            
+        } catch (error) {
+            console.error('Error navigating calendar month:', error);
+            // Fallback to current month if navigation fails
+            this.generateCalendar(new Date());
+            this.isCalendarNavigating = false;
+            
+            // Re-enable navigation buttons
+            const prevMonthBtn = document.getElementById('prevMonth');
+            const nextMonthBtn = document.getElementById('nextMonth');
+            if (prevMonthBtn) prevMonthBtn.disabled = false;
+            if (nextMonthBtn) nextMonthBtn.disabled = false;
+        }
     }
 
     showError(message) {

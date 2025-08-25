@@ -394,12 +394,38 @@ body {
     justify-content: center;
     transition: all 0.3s ease;
     flex-shrink: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 .calendar-nav:hover {
     background: #667eea;
     color: white;
     transform: scale(1.1);
+}
+
+.calendar-nav:active {
+    transform: scale(0.95);
+    background: #5a6fd8;
+}
+
+.calendar-nav:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+
+.calendar-nav:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.calendar-nav:disabled:hover {
+    background: white;
+    color: #667eea;
+    transform: none;
 }
 
 .calendar-month {
