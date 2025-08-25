@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="https://github.com/NoozAbooz/arc/raw/refs/heads/main/favicon.ico">
+    <title>QOTD - Question of the Day</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo" style="display: flex; align-items: center;">
+                <i class="fas fa-question-circle"></i>
+                <h1 style="margin-left: 10px;">QOTD x</h1>
+                <img src="https://archallenge.org/images/icon.png" alt="QOTD Icon" style="height: 80px; margin-left: 15px; border-radius: 16px;">
+            </div>
+            <p class="subtitle">Question of the Day - Solve daily contest problems to level up your scientific knowledge and keep your streak!</p>
+        </header>
+
+        <main class="main-content">
+            <div class="main-layout">
+                <div class="left-column">
+                    <div class="question-card" id="questionCard">
+                        <div class="question-header">
+                            <div class="question-info">
+                                <span class="question-number" id="questionNumber">Question #1</span>
+                                <span class="question-difficulty" id="questionDifficulty"></span>
+                            </div>
+                            <span class="question-date" id="questionDate"></span>
+                        </div>
+                        
+                        <div class="question-content">
+                            <h2 class="question-text" id="questionText">Loading question...</h2>
+                            
+                            <div class="choices-container" id="choicesContainer">
+                                <!-- Choices will be populated here -->
+                            </div>
+                        </div>
+
+                        <div class="question-actions">
+                            <button class="btn btn-primary" id="submitBtn" disabled>
+                                <i class="fas fa-check"></i>
+                                Submit Answer
+                            </button>
+                            <button class="btn btn-secondary" id="nextBtn" style="display: none;">
+                                <i class="fas fa-arrow-right"></i>
+                                Next Question
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-column">
+                    <div class="streak-calendar-section">
+                        <h2 class="streak-calendar-title">Your Streak Calendar</h2>
+                        <p class="streak-calendar-description">Every question counts! Stay consistent, keep your streak going, and watch your calendar fill up with achievements!</p>
+                        
+                        <div class="streak-calendar-card">
+                            <div class="calendar-header">
+                                <button class="calendar-nav" id="prevMonth">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <h3 class="calendar-month" id="calendarMonth">August 2025</h3>
+                                <button class="calendar-nav" id="nextMonth">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <div class="calendar-grid" id="calendarGrid">
+                                <!-- Calendar will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-card">
+                <div class="stat-item">
+                    <i class="fas fa-fire"></i>
+                    <div class="stat-info">
+                        <span class="stat-value" id="currentStreakStats">0</span>
+                        <span class="stat-label">Current Streak</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-trophy"></i>
+                    <div class="stat-info">
+                        <span class="stat-value" id="correctAnswers">0</span>
+                        <span class="stat-label">Correct Answers</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-percentage"></i>
+                    <div class="stat-info">
+                        <span class="stat-value" id="accuracy">0%</span>
+                        <span class="stat-label">Accuracy</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2025 Alpine Reasoning Challenge. Made with <i class="fas fa-heart"></i> in Calgary.</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,536 @@
+class QOTDApp {
+    constructor() {
+        this.questions = [];
+        this.currentQuestion = null;
+        this.selectedAnswer = null;
+        this.answeredQuestions = new Set();
+        this.stats = {
+            questionsAnswered: 0,
+            correctAnswers: 0
+        };
+        
+        this.init();
+    }
+
+    async init() {
+        await this.loadQuestions();
+        this.loadStats();
+        this.loadAnsweredQuestions();
+        this.displayQuestion();
+        this.setupEventListeners();
+        this.updateStats();
+        // Ensure calendar is generated on initialization with a small delay
+        setTimeout(() => this.generateCalendar(), 100);
+    }
+
+    async loadQuestions() {
+        try {
+            const response = await fetch('questions.csv');
+            const csvText = await response.text();
+            this.questions = this.parseCSV(csvText);
+        } catch (error) {
+            console.error('Error loading questions:', error);
+            this.showError('Failed to load questions. Please refresh the page.');
+        }
+    }
+
+    parseCSV(csvText) {
+        const lines = csvText.trim().split('\n');
+        const headers = lines[0].split(',');
+        const questions = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            const values = this.parseCSVLine(line);
+            
+            if (values.length >= 7) {
+                const question = {
+                    id: parseInt(values[0]),
+                    question: values[1].replace(/^"|"$/g, ''), // Remove quotes
+                    choices: values[2].split(',').map(choice => choice.trim()),
+                    correct: parseInt(values[3]),
+                    explanation: values[4].replace(/^"|"$/g, ''), // Remove quotes
+                    subject: values[5].replace(/^"|"$/g, ''), // Remove quotes
+                    difficulty: values[6].replace(/^"|"$/g, '') // Remove quotes
+                };
+                questions.push(question);
+            }
+        }
+        
+        return questions;
+    }
+
+    parseCSVLine(line) {
+        const values = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                values.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        
+        values.push(current.trim());
+        return values;
+    }
+
+    loadStats() {
+        const savedStats = localStorage.getItem('qotd_stats');
+        if (savedStats) {
+            this.stats = JSON.parse(savedStats);
+        }
+    }
+
+    saveStats() {
+        localStorage.setItem('qotd_stats', JSON.stringify(this.stats));
+    }
+
+    loadAnsweredQuestions() {
+        const saved = localStorage.getItem('qotd_answered');
+        if (saved) {
+            this.answeredQuestions = new Set(JSON.parse(saved));
+        }
+    }
+
+    saveAnsweredQuestions() {
+        localStorage.setItem('qotd_answered', JSON.stringify([...this.answeredQuestions]));
+    }
+
+    getRandomQuestion() {
+        const today = new Date().toDateString();
+        const lastQuestionDate = localStorage.getItem('qotd_last_question_date');
+        
+        // If we already showed a question today, return null
+        if (lastQuestionDate === today) {
+            return null;
+        }
+        
+        // Get a random question that hasn't been answered today
+        const availableQuestions = this.questions.filter(q => !this.answeredQuestions.has(q.id));
+        
+        if (availableQuestions.length === 0) {
+            // All questions answered, reset for new day
+            this.resetForNewDay();
+            return this.questions[Math.floor(Math.random() * this.questions.length)];
+        }
+        
+        return availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+    }
+
+    resetForNewDay() {
+        const today = new Date().toDateString();
+        const lastReset = localStorage.getItem('qotd_last_reset');
+        
+        if (lastReset !== today) {
+            this.answeredQuestions.clear();
+            this.saveAnsweredQuestions();
+            localStorage.setItem('qotd_last_reset', today);
+        }
+    }
+
+    displayQuestion() {
+        this.currentQuestion = this.getRandomQuestion();
+        
+        if (!this.currentQuestion) {
+            this.showTodaysQuestion();
+            return;
+        }
+
+        // Update question display
+        document.getElementById('questionNumber').textContent = this.currentQuestion.subject;
+        document.getElementById('questionDifficulty').textContent = this.currentQuestion.difficulty;
+        document.getElementById('questionText').textContent = this.currentQuestion.question;
+        document.getElementById('questionDate').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Create choice elements
+        this.createChoices();
+        
+        // Reset UI state
+        this.selectedAnswer = null;
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('nextBtn').style.display = 'none';
+    }
+
+    showTodaysQuestion() {
+        const questionCard = document.getElementById('questionCard');
+        questionCard.innerHTML = `
+            <div class="todays-question">
+                <div class="question-header">
+                    <span class="question-number">Today's Question</span>
+                    <span class="question-date">${new Date().toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    })}</span>
+                </div>
+                <div class="question-content">
+                    <h2 class="question-text">You've already answered today's question!</h2>
+                    <p class="come-back-tomorrow">Come back tomorrow for a new question.</p>
+                    <div class="streak-info">
+                        <i class="fas fa-fire"></i>
+                        <span>Current Streak: <strong>${this.getCurrentStreak()}</strong> days</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Ensure calendar is generated when showing today's question
+        this.generateCalendar();
+    }
+
+    createChoices() {
+        const container = document.getElementById('choicesContainer');
+        container.innerHTML = '';
+
+        const letters = ['A', 'B', 'C', 'D'];
+        
+        this.currentQuestion.choices.forEach((choice, index) => {
+            const choiceDiv = document.createElement('div');
+            choiceDiv.className = 'choice';
+            choiceDiv.dataset.index = index;
+            
+            choiceDiv.innerHTML = `
+                <label class="choice-label">
+                    <span class="choice-letter">${letters[index]}</span>
+                    <span class="choice-text">${choice}</span>
+                </label>
+            `;
+            
+            choiceDiv.addEventListener('click', () => this.selectChoice(index));
+            container.appendChild(choiceDiv);
+        });
+    }
+
+    selectChoice(index) {
+        // Remove previous selection
+        document.querySelectorAll('.choice').forEach(choice => {
+            choice.classList.remove('selected');
+        });
+        
+        // Select new choice
+        const selectedChoice = document.querySelector(`[data-index="${index}"]`);
+        selectedChoice.classList.add('selected');
+        
+        this.selectedAnswer = index;
+        document.getElementById('submitBtn').disabled = false;
+    }
+
+    submitAnswer() {
+        if (this.selectedAnswer === null) return;
+
+        const choices = document.querySelectorAll('.choice');
+        const correctIndex = this.currentQuestion.correct;
+        
+        // Disable all choices
+        choices.forEach(choice => choice.classList.add('disabled'));
+        
+        // Show correct/incorrect answers
+        choices.forEach((choice, index) => {
+            if (index === correctIndex) {
+                choice.classList.add('correct');
+            } else if (index === this.selectedAnswer && index !== correctIndex) {
+                choice.classList.add('incorrect');
+            }
+        });
+
+        // Update stats
+        this.stats.questionsAnswered++;
+        if (this.selectedAnswer === correctIndex) {
+            this.stats.correctAnswers++;
+        }
+        this.saveStats();
+        this.updateStats();
+
+        // Mark question as answered
+        this.answeredQuestions.add(this.currentQuestion.id);
+        this.saveAnsweredQuestions();
+
+        // Mark today's question as completed
+        const today = new Date().toDateString();
+        localStorage.setItem('qotd_last_question_date', today);
+        
+        // Save answered date for calendar
+        this.saveAnsweredDate(today);
+        
+        // Update streak (continues regardless of correct/incorrect answer)
+        this.updateStreak(this.selectedAnswer === correctIndex);
+
+        // Show explanation and completion message
+        this.showExplanation();
+        
+        // Update calendar
+        this.generateCalendar();
+    }
+
+    nextQuestion() {
+        this.displayQuestion();
+    }
+
+    showExplanation() {
+        const questionCard = document.getElementById('questionCard');
+        const isCorrect = this.selectedAnswer === this.currentQuestion.correct;
+        const correctChoice = this.currentQuestion.choices[this.currentQuestion.correct];
+        
+        questionCard.innerHTML = `
+            <div class="explanation-message">
+                <div class="question-header">
+                    <span class="question-number">Question Completed!</span>
+                    <span class="question-date">${new Date().toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    })}</span>
+                </div>
+                <div class="question-content">
+                    <div class="result-feedback ${isCorrect ? '' : 'incorrect'}">
+                        <i class="fas ${isCorrect ? 'fa-trophy' : 'fa-lightbulb'}"></i>
+                        <h2 class="result-text">${isCorrect ? 'That\'s correct!' : 'Not quite right, but here\'s why:'}</h2>
+                    </div>
+                    
+                    <div class="correct-answer">
+                        <span class="correct-label">Correct Answer:</span>
+                        <span class="correct-value">${correctChoice}</span>
+                    </div>
+                    
+                    <div class="explanation-section">
+                        <h3 class="explanation-title">Explanation:</h3>
+                        <p class="explanation-text">${this.currentQuestion.explanation}</p>
+                    </div>
+                    
+                    <div class="streak-info">
+                        <i class="fas fa-fire"></i>
+                        <span>Current Streak: <strong>${this.getCurrentStreak()}</strong> days</span>
+                    </div>
+                    
+                    <p class="come-back-tomorrow">Come back tomorrow for a new challenge!</p>
+                </div>
+            </div>
+        `;
+    }
+
+    showCompletionMessage() {
+        const questionCard = document.getElementById('questionCard');
+        questionCard.innerHTML = `
+            <div class="completion-message">
+                <div class="question-header">
+                    <span class="question-number">Question Completed!</span>
+                    <span class="question-date">${new Date().toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    })}</span>
+                </div>
+                <div class="question-content">
+                    <h2 class="question-text">Great job! You've completed today's question.</h2>
+                    <p class="come-back-tomorrow">Come back tomorrow for a new challenge!</p>
+                    <div class="streak-info">
+                        <i class="fas fa-fire"></i>
+                        <span>Current Streak: <strong>${this.getCurrentStreak()}</strong> days</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    updateStreak(correct) {
+        const today = new Date().toDateString();
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
+        const lastStreakDate = localStorage.getItem('qotd_last_streak_date');
+        const currentStreak = parseInt(localStorage.getItem('qotd_current_streak') || '0');
+        
+        // Streak continues as long as any answer is given (correct or incorrect)
+        if (lastStreakDate === yesterday || lastStreakDate === today) {
+            // Continue streak
+            const newStreak = lastStreakDate === yesterday ? currentStreak + 1 : currentStreak;
+            localStorage.setItem('qotd_current_streak', newStreak.toString());
+            localStorage.setItem('qotd_last_streak_date', today);
+        } else if (lastStreakDate !== today) {
+            // Start new streak
+            localStorage.setItem('qotd_current_streak', '1');
+            localStorage.setItem('qotd_last_streak_date', today);
+        }
+    }
+
+    getCurrentStreak() {
+        return localStorage.getItem('qotd_current_streak') || '0';
+    }
+
+    generateCalendar(targetDate = new Date()) {
+        const calendarGrid = document.getElementById('calendarGrid');
+        const calendarMonth = document.getElementById('calendarMonth');
+        
+        // Safety check - ensure calendar elements exist
+        if (!calendarGrid || !calendarMonth) {
+            console.warn('Calendar elements not found, skipping calendar generation');
+            return;
+        }
+        
+        const today = new Date();
+        const currentMonth = targetDate.getMonth();
+        const currentYear = targetDate.getFullYear();
+        
+        // Update calendar month display
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        calendarMonth.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+        
+        // Get the first day of the month
+        const firstDay = new Date(currentYear, currentMonth, 1);
+        const lastDay = new Date(currentYear, currentMonth + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startingDay = firstDay.getDay();
+        
+        // Clear previous calendar
+        calendarGrid.innerHTML = '';
+        
+        // Add day headers
+        const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+        dayNames.forEach(day => {
+            const dayHeader = document.createElement('div');
+            dayHeader.className = 'calendar-day-header';
+            dayHeader.textContent = day;
+            calendarGrid.appendChild(dayHeader);
+        });
+        
+        // Add empty cells for days before the first day of the month
+        for (let i = 0; i < startingDay; i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'calendar-day empty';
+            calendarGrid.appendChild(emptyDay);
+        }
+        
+        // Add days of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day';
+            
+            const dateString = new Date(currentYear, currentMonth, day).toDateString();
+            const isToday = dateString === today.toDateString();
+            const isAnswered = this.isDateAnswered(dateString);
+            
+            if (isToday) {
+                dayElement.classList.add('today');
+            }
+            if (isAnswered) {
+                dayElement.classList.add('answered');
+            }
+            
+            dayElement.innerHTML = `
+                <span class="day-number">${day}</span>
+                ${isAnswered ? '<i class="fas fa-fire"></i>' : ''}
+            `;
+            
+            calendarGrid.appendChild(dayElement);
+        }
+    }
+
+    isDateAnswered(dateString) {
+        const answeredDates = JSON.parse(localStorage.getItem('qotd_answered_dates') || '[]');
+        return answeredDates.includes(dateString);
+    }
+
+    saveAnsweredDate(dateString) {
+        const answeredDates = JSON.parse(localStorage.getItem('qotd_answered_dates') || '[]');
+        if (!answeredDates.includes(dateString)) {
+            answeredDates.push(dateString);
+            localStorage.setItem('qotd_answered_dates', JSON.stringify(answeredDates));
+        }
+    }
+
+    updateStats() {
+        // Update both streak displays
+        const currentStreak = this.getCurrentStreak();
+        document.getElementById('currentStreakStats').textContent = currentStreak;
+        
+        document.getElementById('correctAnswers').textContent = this.stats.correctAnswers;
+        
+        const accuracy = this.stats.questionsAnswered > 0 
+            ? Math.round((this.stats.correctAnswers / this.stats.questionsAnswered) * 100)
+            : 0;
+        document.getElementById('accuracy').textContent = `${accuracy}%`;
+        
+        // Generate calendar
+        this.generateCalendar();
+    }
+
+    setupEventListeners() {
+        document.getElementById('submitBtn').addEventListener('click', () => this.submitAnswer());
+        document.getElementById('nextBtn').addEventListener('click', () => this.nextQuestion());
+        
+        // Calendar navigation
+        document.getElementById('prevMonth').addEventListener('click', () => this.navigateMonth(-1));
+        document.getElementById('nextMonth').addEventListener('click', () => this.navigateMonth(1));
+    }
+
+    navigateMonth(direction) {
+        const currentDate = new Date();
+        currentDate.setMonth(currentDate.getMonth() + direction);
+        this.generateCalendar(currentDate);
+    }
+
+    showError(message) {
+        const questionCard = document.getElementById('questionCard');
+        questionCard.innerHTML = `
+            <div class="loading">
+                <h2>${message}</h2>
+            </div>
+        `;
+    }
+}
+
+// Initialize the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new QOTDApp();
+});
+
+// Add some nice animations and interactions
+document.addEventListener('DOMContentLoaded', () => {
+    // Add smooth scrolling
+    document.documentElement.style.scrollBehavior = 'smooth';
+    
+    // Add loading animation
+    const questionCard = document.getElementById('questionCard');
+    questionCard.style.opacity = '0';
+    questionCard.style.transform = 'translateY(20px)';
+    
+    setTimeout(() => {
+        questionCard.style.transition = 'all 0.6s ease-out';
+        questionCard.style.opacity = '1';
+        questionCard.style.transform = 'translateY(0)';
+    }, 100);
+    
+    // Add hover effects for choices
+    document.addEventListener('mouseover', (e) => {
+        if (e.target.closest('.choice')) {
+            const choice = e.target.closest('.choice');
+            if (!choice.classList.contains('disabled')) {
+                choice.style.transform = 'translateX(5px)';
+            }
+        }
+    });
+    
+    document.addEventListener('mouseout', (e) => {
+        if (e.target.closest('.choice')) {
+            const choice = e.target.closest('.choice');
+            if (!choice.classList.contains('disabled')) {
+                choice.style.transform = 'translateX(0)';
+            }
+        }
+    });
+});
