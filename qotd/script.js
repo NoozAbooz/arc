@@ -6,7 +6,8 @@ class QOTDApp {
         this.answeredQuestions = new Set();
         this.stats = {
             questionsAnswered: 0,
-            correctAnswers: 0
+            correctAnswers: 0,
+            longestStreak: 0
         };
         
         this.init();
@@ -18,9 +19,10 @@ class QOTDApp {
         this.loadAnsweredQuestions();
         this.displayQuestion();
         this.setupEventListeners();
-        this.updateStats();
         // Ensure calendar is generated on initialization with a small delay
         setTimeout(() => this.generateCalendar(), 100);
+        // Update stats after everything is loaded
+        setTimeout(() => this.updateStats(), 200);
     }
 
     async loadQuestions() {
@@ -86,11 +88,24 @@ class QOTDApp {
         const savedStats = localStorage.getItem('qotd_stats');
         if (savedStats) {
             this.stats = JSON.parse(savedStats);
+            console.log('Loaded saved stats:', this.stats);
+        } else {
+            console.log('No saved stats found, using defaults:', this.stats);
         }
+        
+        // Check if there's an existing current streak and update longest streak if needed
+        const currentStreak = parseInt(localStorage.getItem('qotd_current_streak') || '0');
+        if (currentStreak > this.stats.longestStreak) {
+            this.stats.longestStreak = currentStreak;
+            console.log('Updated longest streak to:', this.stats.longestStreak);
+        }
+        
+        console.log('Final stats after loading:', this.stats);
     }
 
     saveStats() {
         localStorage.setItem('qotd_stats', JSON.stringify(this.stats));
+        console.log('Stats saved to localStorage:', this.stats);
     }
 
     loadAnsweredQuestions() {
@@ -190,6 +205,9 @@ class QOTDApp {
         
         // Ensure calendar is generated when showing today's question
         this.generateCalendar();
+        
+        // Update stats display
+        setTimeout(() => this.updateStats(), 100);
     }
 
     createChoices() {
@@ -454,16 +472,36 @@ class QOTDApp {
     }
 
     updateStats() {
+        // Safety check - ensure all DOM elements exist before updating
+        const currentStreakElement = document.getElementById('currentStreakStats');
+        const correctAnswersElement = document.getElementById('correctAnswers');
+        const longestStreakElement = document.getElementById('longestStreak');
+        
+        if (!currentStreakElement || !correctAnswersElement || !longestStreakElement) {
+            console.warn('Stats elements not found, skipping stats update');
+            return;
+        }
+        
+        console.log('Updating stats display with:', this.stats);
+        
         // Update both streak displays
         const currentStreak = this.getCurrentStreak();
-        document.getElementById('currentStreakStats').textContent = currentStreak;
+        currentStreakElement.textContent = currentStreak;
         
-        document.getElementById('correctAnswers').textContent = this.stats.correctAnswers;
+        // Update longest streak if current streak is higher
+        const currentStreakNum = parseInt(currentStreak);
+        if (currentStreakNum > this.stats.longestStreak) {
+            this.stats.longestStreak = currentStreakNum;
+            console.log('Updated longest streak to:', this.stats.longestStreak);
+        }
         
-        const accuracy = this.stats.questionsAnswered > 0 
-            ? Math.round((this.stats.correctAnswers / this.stats.questionsAnswered) * 100)
-            : 0;
-        document.getElementById('accuracy').textContent = `${accuracy}%`;
+        correctAnswersElement.textContent = this.stats.correctAnswers;
+        longestStreakElement.textContent = this.stats.longestStreak;
+        
+        console.log('Stats display updated. Current streak:', currentStreak, 'Correct answers:', this.stats.correctAnswers, 'Longest streak:', this.stats.longestStreak);
+        
+        // Save all stats to localStorage
+        this.saveStats();
         
         // Generate calendar
         this.generateCalendar();
